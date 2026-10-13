@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+testpaths = ["2-Auto Test Cases/1_Tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+pythonpath = ["2-Auto Test Cases/2_ActionsPerPage"]
+addopts = ["-ra"]
