@@ -1,19 +1,8 @@
 import re
 
-from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import Page, expect
 
-
-ALL_GAMES_URL = "https://www.paradoxinteractive.com/our-games/all-games"
-
-
-def accept_cookies_if_present(page: Page) -> None:
-    cookie_dialog = page.get_by_role("dialog", name="Cookies and targeting")
-    try:
-        cookie_dialog.wait_for(state="visible", timeout=5_000)
-    except PlaywrightTimeoutError:
-        return
-    cookie_dialog.get_by_role("button", name="OK", exact=True).click()
-    expect(cookie_dialog).to_be_hidden()
+from CommonActions import ALL_GAMES_URL, open_page_with_cookie_consent
 
 FILTER_GROUPS = (
     "Brand",
@@ -30,8 +19,7 @@ def get_filter_group(page: Page, filter_name: str):
     )
 
 def test_all_games_personalized_filters(page: Page) -> None:
-    page.goto(ALL_GAMES_URL)
-    accept_cookies_if_present(page)
+    open_page_with_cookie_consent(page, ALL_GAMES_URL)
 
     page.get_by_role("button", name="Filter").click()
 

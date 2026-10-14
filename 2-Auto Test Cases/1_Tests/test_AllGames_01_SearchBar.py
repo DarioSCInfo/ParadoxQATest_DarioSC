@@ -5,20 +5,12 @@ from playwright.sync_api import (
     Page,
     expect,
 )
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-
-ALL_GAMES_URL = "https://www.paradoxinteractive.com/our-games/all-games"
-
-
-def accept_cookies_if_present(page: Page) -> None:
-    cookie_dialog = page.get_by_role("dialog", name="Cookies and targeting")
-    try:
-        cookie_dialog.wait_for(state="visible", timeout=5_000)
-    except PlaywrightTimeoutError:
-        return
-    cookie_dialog.get_by_role("button", name="OK", exact=True).click()
-    expect(cookie_dialog).to_be_hidden()
+from CommonActions import (
+    ALL_GAMES_URL,
+    expect_product_added,
+    open_page_with_cookie_consent,
+)
 
 NON_PARADOX_SEARCHES = (
     "Minecraft",
@@ -29,11 +21,11 @@ NON_PARADOX_SEARCHES = (
 )
 
 PARADOX_SEARCHES = (
-    "Stellaris",
-    "Crusader Kings",
-    "Age of Wonders",
-    "Europa Universalis",
-    "Cities: Skylines",
+    "War",
+    "King",
+    "Age",
+    "LEGO",
+    "Cit",
 )
 
 
@@ -144,15 +136,7 @@ def add_first_search_result(
         )
         return False
 
-    toast = page.get_by_test_id("toast-list").get_by_text(
-        "Added product to cart",
-        exact=True,
-    )
-    expect(toast).to_be_visible()
-
-    cart_count = page.locator('a[aria-label^="View cart"] div')
-    expect(cart_count).to_have_text(str(expected_cart_count))
-    expect(toast).to_be_hidden()
+    expect_product_added(page, expected_cart_count)
 
     print(
         f"Added to cart ({expected_cart_count}): {title}",
@@ -168,8 +152,7 @@ def add_first_search_result(
 
 
 def test_all_games_01_search_bar(page: Page) -> None:
-    page.goto(ALL_GAMES_URL)
-    accept_cookies_if_present(page)
+    open_page_with_cookie_consent(page, ALL_GAMES_URL)
 
     search_box = get_search_box(page)
 

@@ -1,17 +1,6 @@
-from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, expect
+from playwright.sync_api import Page, expect
 
-
-DISCOVER_URL = "https://www.paradoxinteractive.com/our-games/discover"
-
-
-def accept_cookies_if_present(page: Page) -> None:
-    cookie_dialog = page.get_by_role("dialog", name="Cookies and targeting")
-    try:
-        cookie_dialog.wait_for(state="visible", timeout=5_000)
-    except PlaywrightTimeoutError:
-        return
-    cookie_dialog.get_by_role("button", name="OK", exact=True).click()
-    expect(cookie_dialog).to_be_hidden()
+from CommonActions import DISCOVER_URL, open_page_with_cookie_consent
 
 COOKIE_CATEGORIES = (
     "Targeting Cookies",
@@ -33,8 +22,6 @@ def get_cookie_switch(page: Page, category: str):
 
 
 def accept_initial_cookie_dialog(page: Page) -> None:
-    accept_cookies_if_present(page)
-
     expect(
         page.get_by_role(
             "button",
@@ -109,7 +96,7 @@ def close_cookie_settings_with_x(page: Page) -> None:
 
 
 def test_discover_02_cookie_settings(page: Page) -> None:
-    page.goto(DISCOVER_URL)
+    open_page_with_cookie_consent(page, DISCOVER_URL)
     accept_initial_cookie_dialog(page)
     open_cookie_settings(page)
 

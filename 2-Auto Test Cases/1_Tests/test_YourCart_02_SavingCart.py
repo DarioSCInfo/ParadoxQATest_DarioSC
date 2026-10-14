@@ -4,13 +4,16 @@ from playwright.sync_api import (
     BrowserContext,
     Page,
     Playwright,
-    TimeoutError as PlaywrightTimeoutError,
     expect,
 )
 
-
-ALL_GAMES_URL = "https://www.paradoxinteractive.com/our-games/all-games"
-CART_URL = "https://www.paradoxinteractive.com/our-games/cart"
+from CommonActions import (
+    ALL_GAMES_URL,
+    CART_URL,
+    expect_product_added,
+    open_cart_from_header,
+    open_page_with_cookie_consent,
+)
 
 
 def launch_test_browser(
@@ -23,25 +26,6 @@ def launch_test_browser(
     )
 
 
-def accept_cookies_if_present(page: Page) -> None:
-    cookie_dialog = page.get_by_role(
-        "dialog",
-        name="Cookies and targeting",
-    )
-
-    try:
-        cookie_dialog.wait_for(state="visible", timeout=5_000)
-    except PlaywrightTimeoutError:
-        return
-
-    cookie_dialog.get_by_role(
-        "button",
-        name="OK",
-        exact=True,
-    ).click()
-    expect(cookie_dialog).to_be_hidden()
-
-
 def get_regular_game_card(page: Page):
     return page.locator(
         'li[data-ga_item-list-name="All games"][data-ga_title]'
@@ -52,8 +36,7 @@ def get_regular_game_card(page: Page):
     ).first
 
 def add_one_regular_game(page: Page) -> str:
-    page.goto(ALL_GAMES_URL)
-    accept_cookies_if_present(page)
+    open_page_with_cookie_consent(page, ALL_GAMES_URL)
 
     card = get_regular_game_card(page)
     expect(card).to_be_visible()
@@ -101,24 +84,14 @@ def add_one_regular_game(page: Page) -> str:
             "or Choose edition action"
         )
 
-    toast = page.get_by_test_id("toast-list").get_by_text(
-        "Added product to cart",
-        exact=True,
-    )
-    expect(toast).to_be_visible()
-    expect(
-        page.locator('a[aria-label^="View cart"] div')
-    ).to_have_text("1")
-    expect(toast).to_be_hidden()
+    expect_product_added(page, expected_cart_count=1)
 
     print(f"Game added to cart: {title}", flush=True)
     return title
 
 
 def open_and_check_cart(page: Page, expected_title: str) -> None:
-    page.goto(CART_URL)
-
-    accept_cookies_if_present(page)
+    open_page_with_cookie_consent(page, CART_URL)
 
     expect(page.get_by_role("heading", name="Cart")).to_be_visible()
     expect(
@@ -148,11 +121,7 @@ def test_your_cart_02_saving_cart(tmp_path: Path, playwright: Playwright) -> Non
 
         store_tab.evaluate("window.scrollTo(0, 0)")
 
-        cart_button = store_tab.locator(
-            'a[aria-label^="View cart"]'
-        )
-        expect(cart_button).to_be_visible()
-        cart_button.click()
+        open_cart_from_header(store_tab)
 
         open_and_check_cart(store_tab, game_title)
 

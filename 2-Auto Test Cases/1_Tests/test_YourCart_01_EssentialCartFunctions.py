@@ -3,22 +3,17 @@ from decimal import Decimal
 from playwright.sync_api import (
     Locator,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     expect,
 )
 
-ALL_GAMES_URL = "https://www.paradoxinteractive.com/our-games/all-games"
-ON_SALE_URL = "https://www.paradoxinteractive.com/our-games/on-sale"
-
-
-def accept_cookies_if_present(page: Page) -> None:
-    cookie_dialog = page.get_by_role("dialog", name="Cookies and targeting")
-    try:
-        cookie_dialog.wait_for(state="visible", timeout=5_000)
-    except PlaywrightTimeoutError:
-        return
-    cookie_dialog.get_by_role("button", name="OK", exact=True).click()
-    expect(cookie_dialog).to_be_hidden()
+from CommonActions import (
+    ALL_GAMES_URL,
+    ON_SALE_URL,
+    expect_cart_count,
+    expect_product_added,
+    open_cart_from_header,
+    open_page_with_cookie_consent,
+)
 
 
 EXPECTED_ITEMS_BEFORE_REMOVAL = 2
@@ -193,15 +188,7 @@ def add_from_listing(
             f"Expected a product without a discount: {title}"
         )
 
-    toast = page.get_by_test_id("toast-list").get_by_text(
-        "Added product to cart",
-        exact=True,
-    )
-    expect(toast).to_be_visible()
-
-    cart_number = page.locator('a[aria-label^="View cart"] div')
-    expect(cart_number).to_have_text(str(expected_cart_count))
-    expect(toast).to_be_hidden()
+    expect_product_added(page, expected_cart_count)
 
     print(
         f"{expected_cart_count}/{EXPECTED_ITEMS_BEFORE_REMOVAL} "
@@ -254,24 +241,7 @@ def expect_cart_summary(
     expect_amount_within_margin(total, expected_total, "Total")
 
 def test_your_cart_01_add_regular_and_sale_game(page: Page) -> None:
-    page.goto(ALL_GAMES_URL)
-
-    cookie_dialog = page.get_by_role(
-        "dialog",
-        name="Cookies and targeting",
-    )
-
-    try:
-        cookie_dialog.wait_for(state="visible", timeout=5000)
-    except PlaywrightTimeoutError:
-        pass
-    else:
-        cookie_dialog.get_by_role(
-            "button",
-            name="OK",
-            exact=True,
-        ).click()
-        expect(cookie_dialog).to_be_hidden()
+    open_page_with_cookie_consent(page, ALL_GAMES_URL)
 
     print("\n============================", flush=True)
 
@@ -282,7 +252,7 @@ def test_your_cart_01_add_regular_and_sale_game(page: Page) -> None:
         expected_cart_count=1,
     )
 
-    page.goto(ON_SALE_URL)
+    open_page_with_cookie_consent(page, ON_SALE_URL)
 
     sale_title, sale_price, original_sale_price = add_from_listing(
         page,
@@ -298,7 +268,7 @@ def test_your_cart_01_add_regular_and_sale_game(page: Page) -> None:
     expected_total = regular_price + sale_price
 
     page.evaluate("window.scrollTo(0, 0)")
-    page.locator('a[aria-label^="View cart"]').click()
+    open_cart_from_header(page)
 
     expect(page.get_by_role("heading", name="Cart")).to_be_visible()
     expect(
@@ -329,10 +299,7 @@ def test_your_cart_01_add_regular_and_sale_game(page: Page) -> None:
     ).to_have_text(f"{EXPECTED_ITEMS_AFTER_REMOVAL} item")
     expect(cart_items).to_have_count(EXPECTED_ITEMS_AFTER_REMOVAL)
 
-    cart_number = page.locator('a[aria-label^="View cart"] div')
-    expect(cart_number).to_have_text(
-        str(EXPECTED_ITEMS_AFTER_REMOVAL)
-    )
+    expect_cart_count(page, EXPECTED_ITEMS_AFTER_REMOVAL)
 
     expect_cart_summary(
         page,
