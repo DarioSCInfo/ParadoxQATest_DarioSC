@@ -22,7 +22,7 @@ Open PowerShell or Command Prompt in the project root folder, the folder contain
 
 The setup script creates a project-specific virtual environment, installs pytest and Playwright, and downloads Chromium. It requires an internet connection. It uses an existing Python 3.10 or newer installation; if none is found, it attempts to install Python 3.12 with winget.
 
-### Run the smoke tests
+### Run the smoke test
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_0SmokeTest.py"
@@ -49,7 +49,7 @@ Run the desired command from the project root:
 .\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_YourCart_02_SavingCart.py"
 ~~~
 
-### Run the complete pytest suite
+### Run the complete pack of tests
 
 This runs the smoke tests and all five functional test files:
 
