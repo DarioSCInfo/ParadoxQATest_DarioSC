@@ -1,9 +1,25 @@
 import re
 from decimal import Decimal
-from playwright.sync_api import (Locator, Page, TimeoutError as PlaywrightTimeoutError, expect,)
+from playwright.sync_api import (
+    Locator,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
 ALL_GAMES_URL = "https://www.paradoxinteractive.com/our-games/all-games"
 ON_SALE_URL = "https://www.paradoxinteractive.com/our-games/on-sale"
+
+
+def accept_cookies_if_present(page: Page) -> None:
+    cookie_dialog = page.get_by_role("dialog", name="Cookies and targeting")
+    try:
+        cookie_dialog.wait_for(state="visible", timeout=5_000)
+    except PlaywrightTimeoutError:
+        return
+    cookie_dialog.get_by_role("button", name="OK", exact=True).click()
+    expect(cookie_dialog).to_be_hidden()
+
 
 EXPECTED_ITEMS_BEFORE_REMOVAL = 2
 EXPECTED_ITEMS_AFTER_REMOVAL = 1

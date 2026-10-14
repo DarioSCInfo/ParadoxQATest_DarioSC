@@ -6,7 +6,6 @@ from playwright.sync_api import (
     Playwright,
     TimeoutError as PlaywrightTimeoutError,
     expect,
-    sync_playwright,
 )
 
 
@@ -31,7 +30,7 @@ def accept_cookies_if_present(page: Page) -> None:
     )
 
     try:
-        cookie_dialog.wait_for(state="visible", timeout=5000)
+        cookie_dialog.wait_for(state="visible", timeout=5_000)
     except PlaywrightTimeoutError:
         return
 
@@ -51,7 +50,6 @@ def get_regular_game_card(page: Page):
         ':has(button:has-text("Add to cart"))'
         ':not(:has(span[class*="ProductCard_original-price"]))'
     ).first
-
 
 def add_one_regular_game(page: Page) -> str:
     page.goto(ALL_GAMES_URL)
@@ -134,63 +132,65 @@ def open_and_check_cart(page: Page, expected_title: str) -> None:
     expect(cart_items.get_by_text(expected_title, exact=True)).to_be_visible()
 
 
-def test_your_cart_02_saving_cart(tmp_path: Path) -> None:
+def test_your_cart_02_saving_cart(tmp_path: Path, playwright: Playwright) -> None:
     profile_dir = tmp_path / "paradox-test-profile"
+    print("\n============================", flush=True)
+    # Reuse pytest-playwright's managed instance instead of starting a second
+    # Sync Playwright context, which conflicts with pytest's active event loop.
+    # Stage 1: keep one blank tab open and use a second tab for the store.
+    context = launch_test_browser(playwright, profile_dir)
 
-    with sync_playwright() as playwright:
-        # Stage 1: keep one blank tab open and use a second tab for the store.
-        context = launch_test_browser(playwright, profile_dir)
+    try:
+        blank_tab = context.pages[0]
+        store_tab = context.new_page()
 
-        try:
-            blank_tab = context.pages[0]
-            store_tab = context.new_page()
+        game_title = add_one_regular_game(store_tab)
 
-            game_title = add_one_regular_game(store_tab)
+        store_tab.evaluate("window.scrollTo(0, 0)")
 
-            store_tab.evaluate("window.scrollTo(0, 0)")
+        cart_button = store_tab.locator(
+            'a[aria-label^="View cart"]'
+        )
+        expect(cart_button).to_be_visible()
+        cart_button.click()
 
-            cart_button = store_tab.locator(
-                'a[aria-label^="View cart"]'
-            )
-            expect(cart_button).to_be_visible()
-            cart_button.click()
+        open_and_check_cart(store_tab, game_title)
 
-            open_and_check_cart(store_tab, game_title)
+        print(
+            "Stage 1 passed: the game is in the cart.",
+            flush=True,
+        )
 
-            print(
-                "Stage 1 passed: the game is in the cart.",
-                flush=True,
-            )
+        # Stage 2: close the cart tab and open the cart in a new tab.
+        store_tab.close()
 
-            # Stage 2: close the cart tab and open the cart in a new tab.
-            store_tab.close()
+        second_cart_tab = context.new_page()
+        open_and_check_cart(second_cart_tab, game_title)
 
-            second_cart_tab = context.new_page()
-            open_and_check_cart(second_cart_tab, game_title)
+        print(
+            "Stage 2 passed: the cart was saved in a new tab.",
+            flush=True,
+        )
+    finally:
+        # Closing a persistent context also closes its browser.
+        context.close()
 
-            print(
-                "Stage 2 passed: the cart was saved in a new tab.",
-                flush=True,
-            )
-        finally:
-            # Closing a persistent context also closes its browser.
-            context.close()
+    # Stage 3: reopen Chromium with the same profile and check the cart.
+    context = launch_test_browser(playwright, profile_dir)
 
-        # Stage 3: reopen Chromium with the same profile and check the cart.
-        context = launch_test_browser(playwright, profile_dir)
+    try:
+        restarted_tab = (
+            context.pages[0]
+            if context.pages
+            else context.new_page()
+        )
+        open_and_check_cart(restarted_tab, game_title)
 
-        try:
-            restarted_tab = (
-                context.pages[0]
-                if context.pages
-                else context.new_page()
-            )
-            open_and_check_cart(restarted_tab, game_title)
-
-            print(
-                "Stage 3 passed: the cart was saved after restarting "
-                "the browser.",
-                flush=True,
-            )
-        finally:
-            context.close()
+        print(
+            "Stage 3 passed: the cart was saved after restarting "
+            "the browser.",
+            flush=True,
+        )
+    finally:
+        context.close()
+    print("============================", flush=True)
