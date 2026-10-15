@@ -73,8 +73,6 @@ Pytest runs tests sequentially by default. Do not run tests in parallel or repea
 | Test 04 | Essential cart functions |
 | Test 05 | Cart persistence |
 
-The Smoke Test checks the project runtime and that Playwright can start. Functional tests cover store browsing, search and filters, cookie settings, cart operations, and cart persistence.
-
 ## Requirements and scope
 
 - Windows
