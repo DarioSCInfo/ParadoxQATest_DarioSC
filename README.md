@@ -34,31 +34,31 @@ The setup script creates a project-specific virtual environment, installs pytest
 
 ### Run one functional test
 
-Run the desired command from the project root:
+Open PowerShell in the project root folder (the folder containing `setup.cmd`) and run the command for the test you want:
 
 ~~~powershell
 # Test 01 — Search bar
-.\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_AllGames_01_SearchBar.py"
+.\.venv\Scripts\python.exe -m pytest --headed ".\2-Auto Test Cases\1_Tests\test_AllGames_01_SearchBar.py"
 
 # Test 02 — Personalized filters
-.\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_AllGames_04_PersonalizedFilters.py"
+.\.venv\Scripts\python.exe -m pytest --headed ".\2-Auto Test Cases\1_Tests\test_AllGames_04_PersonalizedFilters.py"
 
 # Test 03 — Cookie settings
-.\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_Discover_02_CookieSettings.py"
+.\.venv\Scripts\python.exe -m pytest --headed ".\2-Auto Test Cases\1_Tests\test_Discover_02_CookieSettings.py"
 
 # Test 04 — Essential cart functions
-.\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_YourCart_01_EssentialCartFunctions.py"
+.\.venv\Scripts\python.exe -m pytest --headed ".\2-Auto Test Cases\1_Tests\test_YourCart_01_EssentialCartFunctions.py"
 
 # Test 05 — Saving cart
-.\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_YourCart_02_SavingCart.py"
+.\.venv\Scripts\python.exe -m pytest --headed ".\2-Auto Test Cases\1_Tests\test_YourCart_02_SavingCart.py"
 ~~~
 
-### Run the complete pack of tests
+### Run the full test suite
 
-This runs the smoke tests and all five functional test files:
+This runs the smoke test and all five functional test files. Run it from the project root folder:
 
 ~~~powershell
-.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m pytest --headed
 ~~~
 
 Pytest runs tests sequentially by default. Do not run tests in parallel or repeatedly against the live store.
