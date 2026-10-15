@@ -13,10 +13,34 @@ from pathlib import Path
 from tkinter import messagebox
 
 
+# Cambia aquí los nombres visibles de los botones.
+# Las claves son internas: conserva esas claves y edita solo los textos.
+BUTTON_LABELS = {
+    "setup": "Setup",
+    "smoke_test": "Smoke Test",
+    "test_01": "Test 01",
+    "test_02": "Test 02",
+    "test_03": "Test 03",
+    "test_04": "Test 04",
+    "test_05": "Test 05",
+    "full_test": "Full Test",
+}
+
 WHITE = "#FFFFFF"
 PASTEL_GREEN = "#DFF0D8"
 PASTEL_RED = "#F4DADA"
 PASTEL_HOVER = "#F2F5F2"
+
+TESTS = {
+    BUTTON_LABELS["smoke_test"]: "test_0SmokeTest.py",
+    BUTTON_LABELS["test_01"]: "test_AllGames_01_SearchBar.py",
+    BUTTON_LABELS["test_02"]: "test_AllGames_04_PersonalizedFilters.py",
+    BUTTON_LABELS["test_03"]: "test_Discover_02_CookieSettings.py",
+    BUTTON_LABELS["test_04"]: "test_YourCart_01_EssentialCartFunctions.py",
+    BUTTON_LABELS["test_05"]: "test_YourCart_02_SavingCart.py",
+}
+
+PYTEST_OPTIONS = ("-v", "-s", "--headed")
 
 
 def find_project_root() -> Path:
@@ -39,16 +63,6 @@ PROJECT_ROOT = find_project_root()
 TEST_DIRECTORY = PROJECT_ROOT / "2-Auto Test Cases" / "1_Tests"
 VENV_PYTHON = PROJECT_ROOT / ".venv" / "Scripts" / "python.exe"
 SETUP_SCRIPT = PROJECT_ROOT / "setup.cmd"
-PYTEST_OPTIONS = ("-v", "-s", "--headed")
-
-TESTS = {
-    "Smoke Test": "test_0SmokeTest.py",
-    "Test 01": "test_AllGames_01_SearchBar.py",
-    "Test 02": "test_AllGames_04_PersonalizedFilters.py",
-    "Test 03": "test_Discover_02_CookieSettings.py",
-    "Test 04": "test_YourCart_01_EssentialCartFunctions.py",
-    "Test 05": "test_YourCart_02_SavingCart.py",
-}
 
 
 class TestRunnerApp:
@@ -57,10 +71,12 @@ class TestRunnerApp:
         self.root.title("PARADOX store and shopping Tool")
         self.root.geometry("420x420")
         self.root.resizable(False, False)
+
         self.buttons: dict[str, tk.Button] = {}
         self.finished_runs: queue.Queue[
             tuple[str, tuple[str, ...], int, dict[str, str]]
         ] = queue.Queue()
+
         self._build_buttons()
 
     def _build_buttons(self) -> None:
@@ -75,6 +91,7 @@ class TestRunnerApp:
             bg=WHITE,
         )
         title.pack(fill=tk.X, pady=(0, 8))
+
         tk.Frame(container, height=1, bg="#C9CEC9").pack(
             fill=tk.X,
             pady=(0, 12),
@@ -85,56 +102,69 @@ class TestRunnerApp:
         button_grid.columnconfigure(0, weight=1, uniform="buttons")
         button_grid.columnconfigure(1, weight=1, uniform="buttons")
 
-        setup_button = self._make_button(
+        self._add_button(
             button_grid,
-            text="Setup",
-            command=self._launch_setup,
-        )
-        setup_button.grid(
+            key="setup",
             row=0,
             column=0,
             columnspan=2,
-            sticky="nsew",
-            padx=6,
-            pady=6,
+            command=self._launch_setup,
             ipady=8,
         )
-        self.buttons["Setup"] = setup_button
 
-        for index, label in enumerate(TESTS):
-            button = self._make_button(
+        test_labels = tuple(TESTS)
+        for index, label in enumerate(test_labels):
+            self._add_button(
                 button_grid,
-                text=label,
-                command=lambda test_label=label: self._launch((test_label,)),
-            )
-            button.grid(
+                key=label,
                 row=index // 2 + 1,
                 column=index % 2,
-                sticky="nsew",
-                padx=6,
-                pady=6,
+                command=lambda test_label=label: self._launch((test_label,)),
                 ipady=14,
             )
-            self.buttons[label] = button
 
-        full_test = self._make_button(
+        self._add_button(
             button_grid,
-            text="Full Test",
-            command=lambda: self._launch((*tuple(TESTS)[1:], "Full Test")),
-        )
-        full_test.grid(
+            key="full_test",
             row=4,
             column=0,
             columnspan=2,
-            sticky="nsew",
-            padx=6,
-            pady=6,
+            command=lambda: self._launch(
+                (*test_labels, BUTTON_LABELS["full_test"])
+            ),
             ipady=14,
         )
-        self.buttons["Full Test"] = full_test
 
         for row in range(5):
             button_grid.rowconfigure(row, weight=1, uniform="rows")
+
+    def _add_button(
+        self,
+        parent: tk.Misc,
+        *,
+        key: str,
+        row: int,
+        column: int,
+        command,
+        columnspan: int = 1,
+        ipady: int,
+    ) -> None:
+        label = (
+            BUTTON_LABELS[key]
+            if key in BUTTON_LABELS
+            else key
+        )
+        button = self._make_button(parent, text=label, command=command)
+        button.grid(
+            row=row,
+            column=column,
+            columnspan=columnspan,
+            sticky="nsew",
+            padx=6,
+            pady=6,
+            ipady=ipady,
+        )
+        self.buttons[key] = button
 
     @staticmethod
     def _make_button(
@@ -159,12 +189,14 @@ class TestRunnerApp:
 
     def _launch_setup(self) -> None:
         if not SETUP_SCRIPT.is_file():
-            self._show_error(f"No se encontró el archivo de instalación:\n{SETUP_SCRIPT}")
+            self._show_error(
+                f"No se encontró el archivo de instalación:\n{SETUP_SCRIPT}"
+            )
             return
 
-        self._set_button_color("Setup", WHITE)
-        for button in self.buttons.values():
-            button.configure(state=tk.DISABLED)
+        setup_label = BUTTON_LABELS["setup"]
+        self._set_button_color(setup_label, WHITE)
+        self._disable_buttons()
 
         command_file = tempfile.NamedTemporaryFile(
             mode="w",
@@ -175,6 +207,7 @@ class TestRunnerApp:
             delete=False,
         )
         command_script = Path(command_file.name)
+
         status_handle = tempfile.NamedTemporaryFile(
             suffix=".txt",
             prefix="_paradox_qa_setup_status_",
@@ -184,6 +217,7 @@ class TestRunnerApp:
         status_file = Path(status_handle.name)
         status_handle.close()
         status_file.unlink(missing_ok=True)
+
         with command_file:
             command_file.write("@echo off\r\n")
             command_file.write(f'cd /d "{PROJECT_ROOT}"\r\n')
@@ -207,8 +241,7 @@ class TestRunnerApp:
         except OSError as error:
             command_script.unlink(missing_ok=True)
             status_file.unlink(missing_ok=True)
-            for button in self.buttons.values():
-                button.configure(state=tk.NORMAL)
+            self._enable_buttons()
             self._show_error(f"No se pudo iniciar el setup:\n{error}")
             return
 
@@ -230,13 +263,17 @@ class TestRunnerApp:
                 not status_file.is_file() or status_file.stat().st_size == 0
             ):
                 threading.Event().wait(0.1)
+
             try:
                 return_code = int(status_file.read_text(encoding="ascii").strip())
             except (OSError, ValueError):
                 return_code = process.poll()
                 if return_code is None:
                     return_code = process.wait()
-            self.finished_runs.put(("setup", ("Setup",), return_code, {}))
+
+            self.finished_runs.put(
+                ("setup", (BUTTON_LABELS["setup"],), return_code, {})
+            )
             process.wait()
         finally:
             command_script.unlink(missing_ok=True)
@@ -250,11 +287,15 @@ class TestRunnerApp:
             )
             return
 
-        selected_tests = tuple(label for label in test_labels if label in TESTS)
+        full_test_label = BUTTON_LABELS["full_test"]
+        selected_tests = tuple(
+            label for label in test_labels if label in TESTS
+        )
         test_paths = [
             str((TEST_DIRECTORY / TESTS[label]).resolve())
             for label in selected_tests
         ]
+
         missing = [path for path in test_paths if not Path(path).is_file()]
         if missing:
             self._show_error(
@@ -269,8 +310,7 @@ class TestRunnerApp:
 
         for label in test_labels:
             self._set_button_color(label, WHITE)
-        for button in self.buttons.values():
-            button.configure(state=tk.DISABLED)
+        self._disable_buttons()
 
         try:
             process = subprocess.Popen(
@@ -282,8 +322,7 @@ class TestRunnerApp:
             python_script.unlink(missing_ok=True)
             command_script.unlink(missing_ok=True)
             results_file.unlink(missing_ok=True)
-            for button in self.buttons.values():
-                button.configure(state=tk.NORMAL)
+            self._enable_buttons()
             self._show_error(f"No se pudo abrir CMD:\n{error}")
             return
 
@@ -313,6 +352,7 @@ class TestRunnerApp:
             delete=False,
         )
         python_script = Path(python_file.name)
+
         pytest_arguments = [
             *PYTEST_OPTIONS,
             *(Path(path).name for path in test_paths),
@@ -356,10 +396,11 @@ temporary_result_path.write_text(json.dumps({{
 temporary_result_path.replace(result_path)
 raise SystemExit(exit_code)
 '''
+
         with python_file:
             python_file.write(python_source)
 
-        command_script = tempfile.NamedTemporaryFile(
+        command_file = tempfile.NamedTemporaryFile(
             mode="w",
             encoding="ascii",
             suffix=".cmd",
@@ -367,24 +408,25 @@ raise SystemExit(exit_code)
             dir=PROJECT_ROOT,
             delete=False,
         )
-        cmd_path = Path(command_script.name)
-        with command_script:
-            command_script.write("@echo off\r\n")
-            command_script.write(f'cd /d "{PROJECT_ROOT}"\r\n')
-            command_script.write("echo Ejecutando pruebas con pytest...\r\n")
-            command_script.write(
+        command_script = Path(command_file.name)
+
+        with command_file:
+            command_file.write("@echo off\r\n")
+            command_file.write(f'cd /d "{PROJECT_ROOT}"\r\n')
+            command_file.write("echo Ejecutando pruebas con pytest...\r\n")
+            command_file.write(
                 f'"{VENV_PYTHON}" "{python_script}"\r\n'
             )
-            command_script.write('set "TEST_EXIT=%ERRORLEVEL%"\r\n')
-            command_script.write("echo.\r\n")
-            command_script.write(
+            command_file.write('set "TEST_EXIT=%ERRORLEVEL%"\r\n')
+            command_file.write("echo.\r\n")
+            command_file.write(
                 "echo Pytest finalizado. Codigo de salida: %TEST_EXIT%\r\n"
             )
-            command_script.write("echo Pulsa una tecla para cerrar esta consola.\r\n")
-            command_script.write("pause\r\n")
-            command_script.write("exit /b %TEST_EXIT%\r\n")
+            command_file.write("echo Pulsa una tecla para cerrar esta consola.\r\n")
+            command_file.write("pause\r\n")
+            command_file.write("exit /b %TEST_EXIT%\r\n")
 
-        return python_script, cmd_path, results_file
+        return python_script, command_script, results_file
 
     def _wait_for_console(
         self,
@@ -397,20 +439,17 @@ raise SystemExit(exit_code)
         try:
             while process.poll() is None and not results_file.is_file():
                 threading.Event().wait(0.1)
+
             try:
                 result_data = json.loads(results_file.read_text(encoding="utf-8"))
                 return_code = int(result_data["exit_code"])
                 results = result_data["statuses"]
-            except (OSError, json.JSONDecodeError):
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
                 return_code = process.poll()
                 if return_code is None:
                     return_code = process.wait()
                 results = {}
-            except (KeyError, TypeError, ValueError):
-                return_code = process.poll()
-                if return_code is None:
-                    return_code = process.wait()
-                results = {}
+
             self.finished_runs.put(("tests", test_labels, return_code, results))
             process.wait()
         finally:
@@ -428,16 +467,18 @@ raise SystemExit(exit_code)
             return
 
         if run_kind == "setup":
+            setup_label = BUTTON_LABELS["setup"]
             self._set_button_color(
-                "Setup",
+                setup_label,
                 PASTEL_GREEN if return_code == 0 else PASTEL_RED,
             )
-            for button in self.buttons.values():
-                button.configure(state=tk.NORMAL)
+            self._enable_buttons()
             return
 
+        full_test_label = BUTTON_LABELS["full_test"]
+
         for label in test_labels:
-            if label == "Full Test":
+            if label == full_test_label:
                 continue
 
             outcome = results.get(TESTS[label])
@@ -449,17 +490,27 @@ raise SystemExit(exit_code)
                 PASTEL_GREEN if outcome == "passed" else PASTEL_RED,
             )
 
-        if "Full Test" in test_labels:
+        if full_test_label in test_labels:
             self._set_button_color(
-                "Full Test",
+                full_test_label,
                 PASTEL_GREEN if return_code == 0 else PASTEL_RED,
             )
 
+        self._enable_buttons()
+
+    def _disable_buttons(self) -> None:
+        for button in self.buttons.values():
+            button.configure(state=tk.DISABLED)
+
+    def _enable_buttons(self) -> None:
         for button in self.buttons.values():
             button.configure(state=tk.NORMAL)
 
     def _set_button_color(self, label: str, color: str) -> None:
-        self.buttons[label].configure(bg=color, activebackground=color)
+        button = self.buttons.get(label)
+        if button is None:
+            return
+        button.configure(bg=color, activebackground=color)
 
     def _show_error(self, message: str) -> None:
         messagebox.showerror("No se pudo iniciar la prueba", message)
