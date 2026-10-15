@@ -29,7 +29,7 @@ The setup script creates a project-specific virtual environment, installs pytest
 ### Run the smoke test
 
 ~~~powershell
-.\.venv\Scripts\python.exe -m pytest "2-Auto Test Cases\1_Tests\test_0SmokeTest.py"
+.\.venv\Scripts\python.exe -m pytest --headed "2-Auto Test Cases\1_Tests\test_0SmokeTest.py"
 ~~~
 
 ### Run one functional test
