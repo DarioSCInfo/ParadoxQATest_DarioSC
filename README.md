@@ -1,20 +1,24 @@
-# PARADOX Store and Shopping Test Suite
+# PARADOX Store and Shopping Test GUIDE
 
-Automated UI tests for browsing the PARADOX store and using its shopping cart. The project includes a small desktop app for setup and test execution, plus commands for running everything from PowerShell or Command Prompt.
+Automated UI tests for browsing the PARADOX store and using its shopping cart. The project includes a small desktop app for setup and test execution, plus commands for running everything from PowerShell or CMD.
 
 ## Quick start with the desktop app
 
 1. Copy or extract the project folder onto the computer.
 2. Open **PARADOX store and shopping Tool.exe**
 3. Click **Setup** and wait for the setup window to finish. Press a key when prompted to close it.
-4. Click **Smoke Test** to check that the required Python and Playwright components are available.
+4. Click **Smoke Test** to check that the required Python, pytest, playwright and chorium components are available.
 5. Use **Test 01** through **Test 05** to run a functional test, or click **Full Test** to run all five functional tests in sequence.
-
-The desktop app opens a browser window while the functional tests run. **Full Test** does not include the Smoke Test.
 
 ## Setup and run from a terminal
 
-Open PowerShell or Command Prompt in the project root folder, the folder containing setup.cmd, and run:
+Open PowerShell or CMD in the project root folder, the folder containing setup.cmd, and run:
+
+~~~powershell
+.\.venv\Scripts\python.exe .\run_tests_gui.py
+~~~
+
+If this does not open the application run:
 
 ~~~powershell
 .\setup.cmd
